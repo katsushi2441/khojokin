@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ s.title }}｜{{ site }}{% endblock %}
+{% block desc %}{{ s.title }}の補助率・上限額・受付期間・対象地域・対象業種をまとめています。{% endblock %}
+{% block body %}
+<nav class="crumb"><a href="{{ rp }}">補助金を探す</a> › {{ s.title[:28] }}</nav>
+<h1>{{ s.title }}</h1>
+{% if s.catch_phrase %}<p class="lead">{{ s.catch_phrase }}</p>{% endif %}
+
+<div class="panel">
+<table>
+  <tr><th>受付期間</th><td>{{ (s.acceptance_start or '')[:10] or '—' }} 〜 {{ (s.acceptance_end or '')[:10] or '—' }}
+    {% if s.days_left is not none %}{% if s.days_left < 0 %}<span class="pill end">受付終了</span>
+    {% else %}<span class="pill {% if s.days_left<=14 %}soon{% endif %}">あと{{ s.days_left }}日</span>{% endif %}{% endif %}</td></tr>
+  <tr><th>補助率</th><td>{{ s.subsidy_rate or '記載なし' }}</td></tr>
+  <tr><th>上限額</th><td>{% if s.max_limit %}{{ "{:,}".format(s.max_limit) }}円{% else %}<span class="note">Jグランツに記載がありません。公式ページでご確認ください。</span>{% endif %}</td></tr>
+  <tr><th>従業員数</th><td>{{ s.target_employees or '記載なし' }}</td></tr>
+  <tr><th>対象地域</th><td>{{ s.target_area or '—' }}{% if s.target_area_detail %}<br><span class="note">{{ s.target_area_detail }}</span>{% endif %}</td></tr>
+  {% if s.project_end %}<tr><th>事業終了期限</th><td>{{ s.project_end[:10] }}</td></tr>{% endif %}
+</table>
+</div>
+
+{% if purpose_list %}<h2>使いみち</h2><p>{% for p in purpose_list %}<span class="pill">{{ p }}</span> {% endfor %}</p>{% endif %}
+{% if industry_list %}<h2>対象の業種</h2><p>{% for p in industry_list %}<span class="pill">{{ p }}</span> {% endfor %}</p>{% endif %}
+
+<h2>申請する</h2>
+<div class="panel">
+<p>公募要領・交付要綱・申請書の様式は、<b>公式ページでご確認ください。</b>
+このページは公式の内容を写したものではありません。</p>
+{% if s.official_url %}<p><a class="btn" href="{{ s.official_url }}" rel="nofollow noopener" target="_blank">Jグランツの公式ページを開く</a></p>{% endif %}
+</div>
+<p><a href="{{ rp }}">条件を変えて探す</a></p>
+{% endblock %}

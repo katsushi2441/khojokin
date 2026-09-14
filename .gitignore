@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.env
+.env.*
+*.bak
+*.bak-*
+*.env.bak*
+data/*.sqlite
+outputs/

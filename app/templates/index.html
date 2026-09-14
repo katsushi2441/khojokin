@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>いま出せる補助金を、条件で絞る</h1>
+<p class="lead">収録 <b>{{ total }}</b>件のうち、<b>{{ open_n }}</b>件が今日応募できます。
+会社の条件を選ぶと、補助率・上限額・締切・公式ページが出ます。</p>
+
+<form method="get" class="panel">
+  <div class="grid">
+    <label>地域
+      <select name="area"><option value="">指定なし</option>
+      {% for a in areas %}<option value="{{ a }}" {% if sel.area==a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select></label>
+    <label>業種
+      <select name="industry"><option value="">指定なし</option>
+      {% for a in industries %}<option value="{{ a }}" {% if sel.industry==a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select></label>
+    <label>従業員数
+      <select name="employees"><option value="">指定なし</option>
+      {% for a in emps %}<option value="{{ a }}" {% if sel.employees==a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select></label>
+    <label>やりたいこと
+      <select name="purpose"><option value="">指定なし</option>
+      {% for a in purposes %}<option value="{{ a }}" {% if sel.purpose==a %}selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select></label>
+  </div>
+  <p><label class="chk"><input type="checkbox" name="show_closed" value="1" {% if sel.show_closed %}checked{% endif %}> 受付期間外も出す</label>
+  <button type="submit">探す</button>
+  <a class="clear" href="{{ rp }}">条件を消す</a></p>
+</form>
+
+{% if picked %}
+  <h2>{{ rows|length }}件</h2>
+  {% if not rows %}
+    <div class="panel note">その条件に当たるものはありませんでした。地域だけ、業種だけ、と条件をひとつずつ外して試してください。</div>
+  {% endif %}
+  {% for s in rows %}
+  <a class="card" href="{{ rp }}s/{{ s.id }}">
+    <div class="t">{{ s.title }}</div>
+    <div class="m">
+      {% if s.days_left is not none %}
+        {% if s.days_left < 0 %}<span class="pill end">受付終了</span>
+        {% elif s.days_left <= 14 %}<span class="pill soon">あと{{ s.days_left }}日</span>
+        {% else %}<span class="pill">〆{{ s.acceptance_end[:10] }}</span>{% endif %}
+      {% else %}<span class="pill">締切の記載なし</span>{% endif %}
+      {% if s.max_limit %}<span class="pill lim">上限 {{ "{:,}".format(s.max_limit) }}円</span>{% endif %}
+      {% if s.subsidy_rate %}<span class="pill">{{ s.subsidy_rate[:28] }}</span>{% endif %}
+    </div>
+    <div class="a">{% if s.local %}<span class="pill local">この地域</span> {% endif %}{{ s.area_label }}</div>
+  </a>
+  {% endfor %}
+{% else %}
+  <div class="panel note">条件をひとつ選ぶだけでも絞れます。まずは<b>地域</b>から選んでみてください。</div>
+{% endif %}
+{% endblock %}

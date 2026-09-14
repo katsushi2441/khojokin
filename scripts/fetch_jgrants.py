@@ -29,9 +29,10 @@ DB = os.environ.get("KHOJO_DB", os.path.join(ROOT, "data", "hojokin.sqlite"))
 BASE = "https://api.jgrants-portal.go.jp/exp/v1/public/subsidies"
 UA = "khojokin/0.1 (+https://exbridge.jp/)"
 
-# 上限は 10回/1秒（API利用概要）。その1/5以下に抑える。
-# 相手は国のベータ版で、こちらが急ぐ理由は何も無い。
-WAIT = float(os.environ.get("KHOJO_WAIT", "0.5"))
+# 上限は 10回/1秒（API利用概要）。だいぶ下に置いても 429 が返ることがあるので、
+# 間隔を広めに取ったうえで、429 は待って取り直す。**取りこぼすと画面から消える。**
+WAIT = float(os.environ.get("KHOJO_WAIT", "1.0"))
+RETRY = int(os.environ.get("KHOJO_RETRY", "4"))
 
 # 一覧APIは keyword が必須。広く拾うため、よく使われる語を順に投げて束ねる。
 # **語を増やすほど網羅できるが、その分リクエストが増える。** 日次で回す前提の数に抑えた。
@@ -66,9 +67,20 @@ def db():
 
 
 def get(url: str):
+    """429 は待って取り直す。相手のベータ版に負荷をかけないよう、待ち時間は倍にしていく。"""
     req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())
+    wait = 2.0
+    for i in range(RETRY):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or i == RETRY - 1:
+                raise
+            print(f"    429。{wait:.0f}秒待って取り直します", file=sys.stderr)
+            time.sleep(wait)
+            wait *= 2
+    raise RuntimeError("到達しない")
 
 
 def list_ids(keyword: str, area: str = "", acceptance: str = "1") -> list[dict]:

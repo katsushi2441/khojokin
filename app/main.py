@@ -13,12 +13,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import os
 import re
 import sqlite3
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -178,9 +179,23 @@ def _days_left(end: str | None):
     return (d - dt.date.today()).days
 
 
+def jsonld(extra: dict | None = None) -> str:
+    """AI検索と検索エンジンに、何のサイトで出典がどこかを機械可読で渡す。"""
+    d = {"@context": "https://schema.org", "@type": "WebSite", "name": SITE,
+         "url": PUBLIC_BASE, "inLanguage": "ja",
+         "publisher": {"@type": "Organization", "name": "株式会社エクスブリッジ",
+                       "url": "https://exbridge.jp/"},
+         "isBasedOn": {"@type": "Dataset", "name": "Jグランツ 補助金情報",
+                       "url": "https://www.jgrants-portal.go.jp"}}
+    if extra:
+        d.update(extra)
+    return json.dumps(d, ensure_ascii=False)
+
+
 def ctx(request: Request, **kw):
     base = {"request": request, "site": SITE, "rp": root_prefix(request),
-            "source": SOURCE, "made_by": MADE_BY,
+            "source": SOURCE, "made_by": MADE_BY, "public_base": PUBLIC_BASE,
+            "jsonld": kw.pop("jsonld", None) or jsonld(),
             "updated_at": meta("updated_at")[:10], "version": VERSION}
     base.update(kw)
     return base
@@ -209,8 +224,15 @@ def show(request: Request, sid: str):
         return HTMLResponse("<h1>その補助金は収録していません</h1>", status_code=404)
     d = dict(r)
     d["days_left"] = _days_left(d.get("acceptance_end"))
+    ld = jsonld({"@type": "GovernmentService", "name": d.get("title"),
+                 "url": PUBLIC_BASE + "s/" + sid,
+                 "serviceType": "補助金",
+                 "provider": {"@type": "GovernmentOrganization", "name": "Jグランツ掲載機関"},
+                 "areaServed": _split(d.get("target_area") or "")[:5],
+                 "isBasedOn": {"@type": "Dataset", "name": "Jグランツ 補助金情報",
+                               "url": d.get("official_url") or "https://www.jgrants-portal.go.jp"}})
     return templates.TemplateResponse(request, "detail.html", ctx(
-        request, s=d, industry_list=_split(d.get("industry") or ""),
+        request, jsonld=ld, s=d, industry_list=_split(d.get("industry") or ""),
         purpose_list=_split(d.get("use_purpose") or ""),
         area_list=_split(d.get("target_area") or "")))
 
@@ -237,6 +259,49 @@ def health():
         return {"ok": True, "subsidies": n, "updated_at": meta("updated_at")}
     except sqlite3.Error as e:
         return JSONResponse({"ok": False, "error": str(e)[:120]}, status_code=503)
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    today = dt.date.today().isoformat()
+    urls = [PUBLIC_BASE, PUBLIC_BASE + "about"]
+    with db() as c:
+        # 受付中のものだけ載せる。終わった公募を検索結果に残しても誰の役にも立たない
+        rows = c.execute("SELECT id FROM subsidy WHERE acceptance_end >= ? OR acceptance_end IS NULL"
+                         " OR acceptance_end=''", (today,)).fetchall()
+    urls += [PUBLIC_BASE + f"s/{r[0]}" for r in rows]
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "".join(f"<url><loc>{u}</loc><lastmod>{today}</lastmod></url>\n" for u in urls)
+            + "</urlset>\n")
+    return Response(content=body, media_type="application/xml")
+
+
+@app.get("/llms.txt", response_class=PlainTextResponse)
+def llms():
+    with db() as c:
+        n = c.execute("SELECT COUNT(*) FROM subsidy").fetchone()[0]
+    return "\n".join([
+        f"# {SITE}", "",
+        "> 会社の地域・業種・従業員数・やりたいことから、いま応募できる補助金と、"
+        "補助率・上限額・締切・公式ページを引くサイト。",
+        "",
+        f"- 収録: {n}件（取り込み {meta('updated_at')[:10]}）",
+        "- 出典: Jグランツ（デジタル庁・https://www.jgrants-portal.go.jp）の公開API",
+        f"- API: {PUBLIC_BASE}api/subsidies?area=愛知県&industry=製造業&employees=20名以下",
+        f"- 補助金ページ: {PUBLIC_BASE}s/<id>",
+        "",
+        "## この道具が答えられること",
+        "- ある地域・業種・従業員規模の会社が、今日応募できる補助金はどれか",
+        "- その補助金の補助率・上限額・受付期間・対象地域・対象業種",
+        "",
+        "## 答えられないこと",
+        "- 応募の可否（要件は公募要領次第。このサイトは要領の本文を持っていません）",
+        "- 申請書類の作成（様式は補助金ごとに違い、中身は事業計画そのものです）",
+        "- 厚生労働省の雇用関係助成金の大半（Jグランツに載っているものだけです）",
+        "",
+        f"個人向けの制度: https://kurage.exbridge.jp/kseido.php/",
+    ]) + "\n"
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)

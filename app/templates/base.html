@@ -3,6 +3,15 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}{{ site }}{% endblock %}</title>
 <meta name="description" content="{% block desc %}会社の地域・業種・人数・やりたいことを選ぶと、いま応募できる補助金と、補助率・上限額・締切・公式ページが出ます。{% endblock %}">
+<link rel="canonical" href="{{ public_base }}{% block canon %}{% endblock %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site }}">
+<meta property="og:title" content="{% block ogtitle %}{{ self.title() }}{% endblock %}">
+<meta property="og:description" content="{{ self.desc() }}">
+<meta property="og:url" content="{{ public_base }}{{ self.canon() }}">
+<meta property="og:image" content="{{ public_base }}static/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{{ jsonld|safe }}</script>
 <link rel="stylesheet" href="{{ rp }}static/style.css">
 </head><body>
 <header><a class="brand" href="{{ rp }}">{{ site }}</a>

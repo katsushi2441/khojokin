@@ -31,6 +31,7 @@ SITE = "Kurage 補助金ナビ"
 VERSION = "0.1.0"
 
 # API利用規約 第5条1 が求める表示。**加工して出しているので、出典だけでは足りない。**
+# **市の公式ページから書き起こしたものに、この表示を付けてはいけない。** 嘘になる。
 SOURCE = "出典：Jグランツ"
 MADE_BY = ("このコンテンツは、政府公式の補助金申請システム jGrants の Web-API 機能を利用して"
            "取得した情報をもとに株式会社エクスブリッジにて作成されたものです。"
@@ -117,7 +118,9 @@ def search(area: str = "", industry: str = "", purpose: str = "",
                 start = (d.get("acceptance_start") or "")[:10]
                 if end and end < today:
                     continue
-                if start and start > today:
+                # 通年・随時の制度は受付開始日を書いていないことがある。
+                # 開始日だけで落とすと「年度内いつでも」の市の制度が消える
+                if start and end and start > today:
                     continue
             if area:
                 a = _split(d.get("target_area") or "")
@@ -137,6 +140,7 @@ def search(area: str = "", industry: str = "", purpose: str = "",
                     continue
             d["days_left"] = _days_left(d.get("acceptance_end"))
             d["area_label"] = area_label(d.get("target_area") or "")
+            d["is_local_gov"] = (d.get("source") or "jgrants") != "jgrants"
             # 地域を選んだ人が見たいのは、まず地元のもの。
             # 全国のものも対象ではあるが、それだけで画面が埋まると地元が見えない。
             _a = _split(d.get("target_area") or "")
@@ -195,6 +199,7 @@ def jsonld(extra: dict | None = None) -> str:
 def ctx(request: Request, **kw):
     base = {"request": request, "site": SITE, "rp": root_prefix(request),
             "source": SOURCE, "made_by": MADE_BY, "public_base": PUBLIC_BASE,
+            "show_jgrants": True,
             "jsonld": kw.pop("jsonld", None) or jsonld(),
             "updated_at": meta("updated_at")[:10], "version": VERSION}
     base.update(kw)
@@ -217,22 +222,27 @@ def index(request: Request, area: str = "", industry: str = "", purpose: str = "
 
 
 @app.get("/s/{sid}", response_class=HTMLResponse)
-def show(request: Request, sid: str):
+def show(request: Request, sid: str):  # noqa: D103
     with db() as c:
         r = c.execute("SELECT * FROM subsidy WHERE id=?", (sid,)).fetchone()
     if not r:
         return HTMLResponse("<h1>その補助金は収録していません</h1>", status_code=404)
     d = dict(r)
     d["days_left"] = _days_left(d.get("acceptance_end"))
+    d["is_local_gov"] = (d.get("source") or "jgrants") != "jgrants"
     ld = jsonld({"@type": "GovernmentService", "name": d.get("title"),
                  "url": PUBLIC_BASE + "s/" + sid,
                  "serviceType": "補助金",
-                 "provider": {"@type": "GovernmentOrganization", "name": "Jグランツ掲載機関"},
+                 "provider": {"@type": "GovernmentOrganization",
+                              "name": d.get("target_area_detail") or "Jグランツ掲載機関"},
                  "areaServed": _split(d.get("target_area") or "")[:5],
-                 "isBasedOn": {"@type": "Dataset", "name": "Jグランツ 補助金情報",
-                               "url": d.get("official_url") or "https://www.jgrants-portal.go.jp"}})
+                 "isBasedOn": {"@type": "Dataset",
+                               "name": (d.get("source") or "Jグランツ 補助金情報"),
+                               "url": d.get("source_url") or d.get("official_url")
+                                      or "https://www.jgrants-portal.go.jp"}})
     return templates.TemplateResponse(request, "detail.html", ctx(
-        request, jsonld=ld, s=d, industry_list=_split(d.get("industry") or ""),
+        request, jsonld=ld, s=d, show_jgrants=not d["is_local_gov"],
+        industry_list=_split(d.get("industry") or ""),
         purpose_list=_split(d.get("use_purpose") or ""),
         area_list=_split(d.get("target_area") or "")))
 

@@ -46,7 +46,7 @@
       {% if s.max_limit %}<span class="pill lim">上限 {{ "{:,}".format(s.max_limit) }}円</span>{% endif %}
       {% if s.subsidy_rate %}<span class="pill">{{ s.subsidy_rate[:22] }}</span>{% endif %}
     </div>
-    <div class="a">{% if s.local %}<span class="pill local">この地域</span> {% endif %}{{ s.area_label }}</div>
+    <div class="a">{% if s.local %}<span class="pill local">この地域</span> {% endif %}{{ s.area_label }}{% if s.is_local_gov %} <span class="pill gov">{{ s.source }}</span>{% endif %}</div>
   </a>
   {% endfor %}
 {% else %}

@@ -18,8 +18,11 @@
   <nav><a href="{{ rp }}about">この道具について</a></nav></header>
 <main>{% block body %}{% endblock %}</main>
 <footer>
+{% if show_jgrants %}
   <p class="src">{{ source }}（<a href="https://www.jgrants-portal.go.jp" rel="nofollow noopener" target="_blank">https://www.jgrants-portal.go.jp</a>）　{% if updated_at %}取り込み日 {{ updated_at }}{% endif %}</p>
   <p class="src">{{ made_by }}</p>
+  <p class="src">自治体が独自に公募しているものは、各自治体の公式ページから書き起こしています（Jグランツには載りません）。出典は各ページに記載しています。</p>
+{% endif %}
   <p class="src">応募の可否と条件は、必ず公式ページでご確認ください。<a href="https://exbridge.jp/" rel="noopener">株式会社エクスブリッジ</a></p>
 </footer>
 </body></html>

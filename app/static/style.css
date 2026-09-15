@@ -31,6 +31,7 @@ button{background:#0a9a8f;color:#fff;border:0;border-radius:8px;padding:10px 22p
 .pill.end{background:#eceff1;color:#6b7a88}
 .pill.lim{background:#eef2fb;color:#2b4a8b}
 .pill.local{background:#0a9a8f;color:#fff}
+.pill.gov{background:#fff4e5;color:#8a5a12;border:1px solid #f0d9b5}
 table{width:100%;border-collapse:collapse}
 th,td{border-bottom:1px solid #eef2f4;padding:9px 6px;text-align:left;vertical-align:top;font-size:.94rem}
 th{width:130px;color:#4a5a68;font-weight:600}

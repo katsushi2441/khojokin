@@ -23,11 +23,18 @@
 {% if purpose_list %}<h2>使いみち</h2><p>{% for p in purpose_list %}<span class="pill">{{ p }}</span> {% endfor %}</p>{% endif %}
 {% if industry_list %}<h2>対象の業種</h2><p>{% for p in industry_list %}<span class="pill">{{ p }}</span> {% endfor %}</p>{% endif %}
 
+{% if s.note %}<h2>補足</h2><div class="panel"><p>{{ s.note }}</p></div>{% endif %}
+
 <h2>申請する</h2>
 <div class="panel">
 <p>公募要領・交付要綱・申請書の様式は、<b>公式ページでご確認ください。</b>
 このページは公式の内容を写したものではありません。</p>
-{% if s.official_url %}<p><a class="btn" href="{{ s.official_url }}" rel="nofollow noopener" target="_blank">Jグランツの公式ページを開く</a></p>{% endif %}
+{% if s.official_url %}<p><a class="btn" href="{{ s.official_url }}" rel="nofollow noopener" target="_blank">{% if s.is_local_gov %}{{ s.source }}で見る{% else %}Jグランツの公式ページを開く{% endif %}</a></p>{% endif %}
+{% if s.is_local_gov %}
+<p class="note">この制度は<b>{{ s.source }}</b>から書き起こしたものです（公式ページの更新日 {{ s.source_updated or "—" }}）。
+{{ s.target_area_detail or "この自治体" }}はJグランツを使わず自前の申請システムで公募しているため、
+国の補助金検索には出てきません。</p>
+{% endif %}
 </div>
 <p><a href="{{ rp }}">条件を変えて探す</a></p>
 {% endblock %}

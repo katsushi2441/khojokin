@@ -43,7 +43,7 @@
         {% else %}<span class="pill">〆{{ s.acceptance_end[:10] }}</span>{% endif %}
       {% else %}<span class="pill">締切の記載なし</span>{% endif %}
       {% if s.max_limit %}<span class="pill lim">上限 {{ "{:,}".format(s.max_limit) }}円</span>{% endif %}
-      {% if s.subsidy_rate %}<span class="pill">{{ s.subsidy_rate[:28] }}</span>{% endif %}
+      {% if s.subsidy_rate %}<span class="pill">{{ s.subsidy_rate[:22] }}</span>{% endif %}
     </div>
     <div class="a">{% if s.local %}<span class="pill local">この地域</span> {% endif %}{{ s.area_label }}</div>
   </a>

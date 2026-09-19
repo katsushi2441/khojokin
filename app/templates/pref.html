@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block canon %}pref/{{ slug }}{% endblock %}
+{% block title %}{{ pref }}で今日応募できる補助金{{ rows|length }}件｜補助率・上限額・締切｜{{ site }}{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ rp }}">調べる</a> › <a href="{{ rp }}pref">都道府県から見る</a> › {{ pref }}</nav>
+<h1>{{ pref }}で今日応募できる補助金</h1>
+<p class="lead">{{ pref }}の事業者が今日応募できるものが<b>{{ rows|length }}件</b>あります。うち<b>{{ local|length }}件</b>が{{ pref }}を対象に指定したもの、<b>{{ nation|length }}件</b>が全国対象です。<b>補助率・上限額・締切は取り込んだ値をそのまま出しています</b>（AIに書かせていません）。</p>
+
+<p><a class="btn" href="{{ rp }}?area={{ pref|urlencode }}">業種・従業員数でさらに絞る</a></p>
+
+{% if local %}
+<h2>{{ pref }}を対象に指定しているもの（{{ local|length }}件）</h2>
+<div class="scroll">
+<table class="tbl">
+  <tr><th>補助金</th><th>補助率</th><th>上限額</th><th>締切</th></tr>
+  {% for s in local %}
+  <tr>
+    <td><a href="{{ rp }}s/{{ s.id }}">{{ s.title or s.name }}</a>{% if s.target_area_detail %}<br><span class="note">{{ s.target_area_detail }}</span>{% endif %}</td>
+    <td>{{ s.subsidy_rate or '—' }}</td>
+    <td>{% if s.max_limit and s.max_limit is string and s.max_limit.isdigit() %}{{ "{:,}".format(s.max_limit|int) }}円{% else %}{{ s.max_limit or "—" }}{% endif %}</td>
+    <td>{{ (s.acceptance_end or '')[:10] or '—' }}{% if s.days_left is not none and s.days_left >= 0 %}<br><span class="note">あと{{ s.days_left }}日</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}
+<h2>{{ pref }}を対象に指定しているもの</h2>
+<p class="note">今日の時点で、{{ pref }}を名指しで対象にしている受付中の補助金は収録していません。下の全国対象をご覧ください。</p>
+{% endif %}
+
+{% if nation %}
+<h2>全国が対象のもの（{{ nation|length }}件）</h2>
+<p class="note">締切が近い順に20件まで出します。全部を条件で絞るときは <a href="{{ rp }}?area={{ pref|urlencode }}">検索</a> をお使いください。</p>
+<div class="scroll">
+<table class="tbl">
+  <tr><th>補助金</th><th>補助率</th><th>上限額</th><th>締切</th></tr>
+  {% for s in nation[:20] %}
+  <tr>
+    <td><a href="{{ rp }}s/{{ s.id }}">{{ s.title or s.name }}</a></td>
+    <td>{{ s.subsidy_rate or '—' }}</td>
+    <td>{% if s.max_limit and s.max_limit is string and s.max_limit.isdigit() %}{{ "{:,}".format(s.max_limit|int) }}円{% else %}{{ s.max_limit or "—" }}{% endif %}</td>
+    <td>{{ (s.acceptance_end or '')[:10] or '—' }}{% if s.days_left is not none and s.days_left >= 0 %}<br><span class="note">あと{{ s.days_left }}日</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+<h2>ほかの都道府県</h2>
+<p class="note">{% for o in others %}<a href="{{ rp }}pref/{{ o.slug }}">{{ o.name }}</a>（{{ o.n }}）{% if not loop.last %} ・ {% endif %}{% endfor %}</p>
+
+<p class="note"><b>該当するかどうかの判定はしていません。</b>条件に当たりうるものを機械的に絞っているだけで、実際に応募できるかは公募要領の要件次第です。公募要領の本文は持っていないので、公式ページでご確認ください。取り込みは1日1回、最終更新は {{ updated_at }} です。</p>
+{% endblock %}

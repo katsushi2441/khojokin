@@ -221,6 +221,62 @@ def index(request: Request, area: str = "", industry: str = "", purpose: str = "
              "employees": employees, "show_closed": show_closed}))
 
 
+# --- 都道府県から見る ---------------------------------------------------------
+# 入口が検索フォーム1枚で、地域の受け皿ページが無かった。kflood は区ページを持っていて
+# 「名古屋市北区 ハザードマップ 洪水」で9〜13位・90日で表示375を得ている（2026-09-19 実測）。
+# 補助金は target_area に都道府県が入っているので、同じ粒度を都道府県で作る。
+# **末尾スラッシュを付けない。** root_prefix が末尾スラッシュを数えていないため、
+# /pref/aichi/ にするとリンクが1階層ずれる（/s/{sid} と同じ形にそろえる）。
+PREF_SLUG = {
+    "北海道": "hokkaido", "青森県": "aomori", "岩手県": "iwate", "宮城県": "miyagi",
+    "秋田県": "akita", "山形県": "yamagata", "福島県": "fukushima", "茨城県": "ibaraki",
+    "栃木県": "tochigi", "群馬県": "gunma", "埼玉県": "saitama", "千葉県": "chiba",
+    "東京都": "tokyo", "神奈川県": "kanagawa", "新潟県": "niigata", "富山県": "toyama",
+    "石川県": "ishikawa", "福井県": "fukui", "山梨県": "yamanashi", "長野県": "nagano",
+    "岐阜県": "gifu", "静岡県": "shizuoka", "愛知県": "aichi", "三重県": "mie",
+    "滋賀県": "shiga", "京都府": "kyoto", "大阪府": "osaka", "兵庫県": "hyogo",
+    "奈良県": "nara", "和歌山県": "wakayama", "鳥取県": "tottori", "島根県": "shimane",
+    "岡山県": "okayama", "広島県": "hiroshima", "山口県": "yamaguchi", "徳島県": "tokushima",
+    "香川県": "kagawa", "愛媛県": "ehime", "高知県": "kochi", "福岡県": "fukuoka",
+    "佐賀県": "saga", "長崎県": "nagasaki", "熊本県": "kumamoto", "大分県": "oita",
+    "宮崎県": "miyazaki", "鹿児島県": "kagoshima", "沖縄県": "okinawa",
+}
+SLUG_PREF = {v: k for k, v in PREF_SLUG.items()}
+
+
+def pref_counts() -> list[dict]:
+    """都道府県ごとの受付中件数。全国対象は各県に足さず、別に数える。"""
+    rows = search(open_only=True)
+    out = []
+    for name, slug in PREF_SLUG.items():
+        n = sum(1 for d in rows if name in _split(d.get("target_area") or ""))
+        out.append({"name": name, "slug": slug, "n": n})
+    return out
+
+
+@app.get("/pref", response_class=HTMLResponse)
+def prefs_page(request: Request):
+    rows = search(open_only=True)
+    nation = sum(1 for d in rows if "全国" in _split(d.get("target_area") or ""))
+    return templates.TemplateResponse(request, "prefs.html", ctx(
+        request, prefs=pref_counts(), nation=nation, open_n=len(rows)))
+
+
+@app.get("/pref/{slug}", response_class=HTMLResponse)
+def pref_page(request: Request, slug: str):
+    name = SLUG_PREF.get(slug)
+    if not name:
+        return HTMLResponse("<h1>その都道府県のページはありません</h1>", status_code=404)
+    rows = search(area=name, open_only=True)
+    nation = [d for d in rows if "全国" in _split(d.get("target_area") or "")]
+    local = [d for d in rows if d not in nation]
+    for d in rows:
+        d["days_left"] = _days_left(d.get("acceptance_end"))
+    return templates.TemplateResponse(request, "pref.html", ctx(
+        request, pref=name, slug=slug, rows=rows, local=local, nation=nation,
+        others=[x for x in pref_counts() if x["slug"] != slug]))
+
+
 @app.get("/s/{sid}", response_class=HTMLResponse)
 def show(request: Request, sid: str):  # noqa: D103
     with db() as c:
@@ -279,6 +335,7 @@ def sitemap():
         # 受付中のものだけ載せる。終わった公募を検索結果に残しても誰の役にも立たない
         rows = c.execute("SELECT id FROM subsidy WHERE acceptance_end >= ? OR acceptance_end IS NULL"
                          " OR acceptance_end=''", (today,)).fetchall()
+    urls += [PUBLIC_BASE + "pref"] + [PUBLIC_BASE + f"pref/{v}" for v in PREF_SLUG.values()]
     urls += [PUBLIC_BASE + f"s/{r[0]}" for r in rows]
     body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

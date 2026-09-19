@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block canon %}pref{% endblock %}
+{% block title %}都道府県から見る（今日応募できる補助金）｜{{ site }}{% endblock %}
+{% block body %}
+<nav class="bc"><a href="{{ rp }}">調べる</a> › 都道府県から見る</nav>
+<h1>都道府県から見る</h1>
+<p class="lead">今日応募できる補助金は全部で<b>{{ open_n }}件</b>。うち<b>{{ nation }}件</b>は全国が対象なので、どの都道府県からも応募できます。下の件数は<b>その都道府県を名指しで対象にしているもの</b>です。</p>
+<div class="scroll">
+<table class="tbl">
+  <tr><th>都道府県</th><th>名指しで対象</th></tr>
+  {% for p in prefs %}
+  <tr><td><a href="{{ rp }}pref/{{ p.slug }}">{{ p.name }}</a></td><td>{{ p.n }}</td></tr>
+  {% endfor %}
+</table>
+</div>
+<p class="note"><b>該当するかどうかの判定はしていません。</b>条件に当たりうるものを機械的に絞っているだけです。補助率・上限額・締切は取り込んだ値をそのまま出しており、AIに書かせていません。最終更新は {{ updated_at }} です。</p>
+{% endblock %}

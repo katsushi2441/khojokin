@@ -44,3 +44,15 @@ footer{border-top:1px solid #e3e9ec;background:#fff;padding:16px;margin-top:30px
 footer .src{max-width:920px;margin:0 auto 6px;color:#6b7a88;font-size:.8rem}
 footer a{color:#0a9a8f}
 @media(max-width:480px){main{padding:14px}h1{font-size:1.2rem}th{width:96px}}
+
+/* 都道府県ページの一覧表。**列幅を決めないと補助金名が1文字ずつ折り返す**（2026-09-20）。
+   狭い画面では横スクロールに逃がす。 */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+.tbl th,.tbl td{border-bottom:1px solid #dfe7ec;padding:9px 8px;text-align:left;vertical-align:top}
+.tbl th{white-space:nowrap;color:#5d6b7a;font-weight:700}
+.tbl td:first-child{width:46%}
+.tbl td:nth-child(2){width:22%}
+.tbl td:nth-child(3),.tbl td:nth-child(4){white-space:nowrap}
+.bc{font-size:12px;color:#5d6b7a;margin:0 0 8px}
+.bc a{color:#5d6b7a}

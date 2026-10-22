@@ -138,8 +138,12 @@ def main() -> int:
         time.sleep(WAIT)
         if not d:
             continue
-        con.execute("""INSERT OR REPLACE INTO subsidy VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+        # 列名を明示する。load_local.py が source/source_url/source_updated/note の4列を足したあと、
+        # 列名なしの INSERT が「21列に17個」で9/15から5週間失敗し続けた（2026-10-23 修正）
+        con.execute("""INSERT OR REPLACE INTO subsidy
+            (id,name,title,catch_phrase,use_purpose,industry,target_area,target_area_detail,target_employees,
+             subsidy_rate,max_limit,acceptance_start,acceptance_end,project_end,official_url,detail_len,fetched_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
             d.get("id"), d.get("name"), d.get("title"), d.get("subsidy_catch_phrase"),
             d.get("use_purpose"), d.get("industry"),
             d.get("target_area_search"), d.get("target_area_detail"),

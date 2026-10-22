@@ -1,9 +1,15 @@
 {% extends "base.html" %}
+{# 題名と説明はトップで必ず上書きする。以前は base の既定（サイト名だけ8字）のままで、
+   「補助金 検索」390・「補助金 一覧」720・「中小企業 補助金」3,600 のどれにも当たっていなかった。 #}
+{% block title %}中小企業の補助金を条件で検索｜いま応募できる{{ open_n }}件を補助率・上限・締切つきで{% endblock %}
+{% block desc %}地域・業種・従業員数・やりたいことを選ぶと、いま応募できる補助金が出ます。収録{{ total }}件のうち本日応募可能は{{ open_n }}件。補助率・上限額・締切・公式ページへのリンクつき。国のjGrants（デジタル庁）のデータを毎日取り込んでいます。{% endblock %}
 {% block canon %}{% endblock %}
 {% block body %}
 <h1>いま出せる補助金を、条件で絞る</h1>
 <p class="lead">収録 <b>{{ total }}</b>件のうち、<b>{{ open_n }}</b>件が今日応募できます。
 会社の条件を選ぶと、補助率・上限額・締切・公式ページが出ます。</p>
+<p class="lead" style="background:#e6f7f3;border:1px solid #bcecd3;border-radius:10px;padding:10px 14px">AI・ITツールの導入に使う補助金（デジタル化・AI導入補助金は Jグランツに載らないため、ここには出ません）は、
+<a href="https://exbridge.jp/ai-hojokin.html#ref=khojokin-top"><b>AI導入に使える補助金2026（国・愛知県・名古屋市）</b></a>にまとめています。</p>
 
 <form method="get" class="panel">
   <div class="grid">
